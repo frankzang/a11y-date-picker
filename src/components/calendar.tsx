@@ -86,26 +86,31 @@ export const Calendar = ({ date, min, max, onClick }: CalendarProps) => {
           </tr>
         </thead>
         <tbody>
-          {weeks.map((dates, i) => {
+          {weeks.map((days, i) => {
             return (
               <tr key={i.toString()}>
-                {dates.map((date) => (
-                  <td
-                    key={date.toString()}
-                    aria-label={format(date, 'MMM, dd, E')}
-                  >
-                    <button
-                      style={{
-                        backgroundColor: isSameDay(date, activeDate)
-                          ? 'yellow'
-                          : 'transparent',
-                      }}
-                      onClick={() => selectDate(date)}
+                {days.map((date) => {
+                  const isDateSelected = isSameDay(date, activeDate);
+
+                  return (
+                    <td
+                      key={date.toString()}
+                      aria-label={format(date, 'MMM, dd, E')}
+                      aria-selected={isDateSelected}
                     >
-                      {format(date, 'dd')}
-                    </button>
-                  </td>
-                ))}
+                      <button
+                        style={{
+                          backgroundColor: isDateSelected
+                            ? 'yellow'
+                            : 'transparent',
+                        }}
+                        onClick={() => selectDate(date)}
+                      >
+                        {format(date, 'dd')}
+                      </button>
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}
