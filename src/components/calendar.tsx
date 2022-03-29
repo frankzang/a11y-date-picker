@@ -1,9 +1,9 @@
 import addDays from 'date-fns/addDays';
 import addMonths from 'date-fns/addMonths';
 import format from 'date-fns/format';
-import { isEqual } from 'date-fns/fp';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
+import isEqual from 'date-fns/isEqual';
 import isSameDay from 'date-fns/isSameDay';
 import isSameMonth from 'date-fns/isSameMonth';
 import startOfMonth from 'date-fns/startOfMonth';
@@ -21,87 +21,34 @@ const getMonthDates = (date: Date) => {
   return dates;
 };
 
-const enableFirstAvailableDate = () => document.querySelector('tr td[data-disabled="false"]')?.setAttribute('tabindex', '0');
-
-const useTableKeyboardNavigation = () => {
-  const tableRef = useRef<HTMLTableElement>(null);
-
-  useEffect(() => {
-    enableFirstAvailableDate();
-    const onKeyPress = (e: KeyboardEvent) => {
-      const elm = (e.target as HTMLElement).closest('td')!;
-      const parent = elm.parentElement;
-      const { col } = elm?.dataset;
-
-      switch (e.key) {
-        case 'ArrowUp':
-          const up = parent?.previousElementSibling?.querySelector(
-            `[data-col="${col}"][data-disabled="false"]`
-          ) as HTMLElement;
-
-          if(!up) return;
-          
-          elm.setAttribute('tabindex', '-1');
-          up.setAttribute('tabindex', '0');
-          up?.focus();
-          return;
-        case 'ArrowDown':
-          const down = parent?.nextElementSibling?.querySelector(
-            `[data-col="${col}"][data-disabled="false"]`
-          ) as HTMLElement;
-
-          if(!down) return;
-          
-          elm.setAttribute('tabindex', '-1');
-          down?.setAttribute('tabindex', '0');
-          down?.focus();
-          return;
-        case 'ArrowLeft':
-          const left = elm?.previousElementSibling as HTMLElement;
-          if(left?.getAttribute('data-disabled') === 'true') return;
-
-          elm.setAttribute('tabindex', '-1');
-          left?.setAttribute('tabindex', '0');
-          left?.focus();
-          return;
-        case 'ArrowRight':
-          const right = elm?.nextElementSibling as HTMLElement;
-          if(right?.getAttribute('data-disabled') === 'true') return;
-
-          elm.setAttribute('tabindex', '-1');
-          right?.setAttribute('tabindex', '0');
-          right?.focus();
-          return;
-        case ' ':
-        case 'Enter':
-          elm.querySelector('button')?.click();
-          return;
-        default:
-          return;
-      }
-    };
-
-    tableRef.current?.addEventListener('keydown', onKeyPress);
-
-    return () => tableRef.current?.removeEventListener('keydown', onKeyPress);
-  }, []);
-
-  return tableRef;
-};
+const enableFirstAvailableDate = () =>
+  document
+    .querySelector('tr td[data-disabled="false"]')
+    ?.setAttribute('tabindex', '0');
 
 type CalendarProps = {
   date?: Date;
   min?: Date;
   max?: Date;
+  tileClassName?: (date: Date) => string;
+  tileContent?: (date: Date) => string;
   onClick?(date: Date): void;
 };
 
-export const Calendar = ({ date, min, max, onClick }: CalendarProps) => {
+export const Calendar = ({
+  date,
+  min,
+  max,
+  tileClassName,
+  tileContent,
+  onClick,
+}: CalendarProps) => {
   const [activeMonth, setActiveMonthDate] = useState(() => date ?? new Date());
   const [activeDate, setActiveDate] = useState<Date>(date ?? new Date());
   const month = useMemo(() => getMonthDates(activeMonth), [activeMonth]);
   const weeks = useMemo(() => chunks(month, 7), [month]);
-  const ref = useTableKeyboardNavigation();
+  const tableRef = useRef<HTMLTableElement>(null);
+  const focusActiveDateRef = useRef(false);
 
   const prevMonth = () => {
     setActiveMonthDate((date) => subMonths(date, 1));
@@ -126,11 +73,81 @@ export const Calendar = ({ date, min, max, onClick }: CalendarProps) => {
     setActiveMonthDate(date);
   }, [date, selectDate]);
 
-  useEffect(() => enableFirstAvailableDate(), [activeMonth])
+  useEffect(() => {
+    enableFirstAvailableDate();
+  }, [activeMonth]);
+
+  useEffect(() => {
+    const onKeyPress = (e: KeyboardEvent) => {
+      const elm = (e.target as HTMLElement).closest('td')!;
+      const parent = elm.parentElement;
+      const { col } = elm?.dataset;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          const up = parent?.previousElementSibling?.querySelector(
+            `[data-col="${col}"][data-disabled="false"]`
+          ) as HTMLElement;
+
+          if (!up) return;
+
+          elm.setAttribute('tabindex', '-1');
+          up.setAttribute('tabindex', '0');
+          up?.focus();
+          return;
+        case 'ArrowDown':
+          const down = parent?.nextElementSibling?.querySelector(
+            `[data-col="${col}"][data-disabled="false"]`
+          ) as HTMLElement;
+
+          if (!down) return;
+
+          elm.setAttribute('tabindex', '-1');
+          down?.setAttribute('tabindex', '0');
+          down?.focus();
+          return;
+        case 'ArrowLeft':
+          const left = elm?.previousElementSibling as HTMLElement;
+          if (left?.getAttribute('data-disabled') === 'true') return;
+
+          elm.setAttribute('tabindex', '-1');
+          left?.setAttribute('tabindex', '0');
+          left?.focus();
+          return;
+        case 'ArrowRight':
+          const right = elm?.nextElementSibling as HTMLElement;
+          if (right?.getAttribute('data-disabled') === 'true') return;
+
+          elm.setAttribute('tabindex', '-1');
+          right?.setAttribute('tabindex', '0');
+          right?.focus();
+          return;
+        case ' ':
+        case 'Enter':
+          elm.click();
+          focusActiveDateRef.current = true;
+          return;
+        default:
+          return;
+      }
+    };
+
+    tableRef.current?.addEventListener('keydown', onKeyPress);
+
+    return () => tableRef.current?.removeEventListener('keydown', onKeyPress);
+  }, []);
+
+  useEffect(() => {
+    if (!focusActiveDateRef.current) return;
+
+    tableRef.current
+      ?.querySelector<HTMLElement>('[data-active="true"]')
+      ?.focus();
+    focusActiveDateRef.current = false;
+  }, [activeDate]);
 
   return (
     <div>
-      {activeDate.toLocaleDateString()}
       <div role="log" aria-live="polite" aria-relevant="text">
         {format(activeMonth, 'MMMM, yyyy')}
       </div>
@@ -148,7 +165,7 @@ export const Calendar = ({ date, min, max, onClick }: CalendarProps) => {
           Next
         </button>
       </div>
-      <table ref={ref}>
+      <table ref={tableRef}>
         <caption>{format(activeMonth, 'MMMM')}</caption>
         <thead>
           <tr>
@@ -174,22 +191,24 @@ export const Calendar = ({ date, min, max, onClick }: CalendarProps) => {
                       key={date.toString()}
                       aria-label={format(date, 'MMM, dd, E')}
                       aria-selected={isDateSelected}
+                      aria-disabled={isDateDisabled}
+                      onClick={() => selectDate(date)}
                       data-row={row}
                       data-col={col}
+                      data-active={isDateSelected}
                       data-disabled={isDateDisabled}
+                      className={tileClassName?.(date)}
+                      tabIndex={-1}
                     >
-                      <button
-                       tabIndex={-1}
-                        disabled={isDateDisabled}
+                      <span
                         style={{
                           backgroundColor: isDateSelected
                             ? 'yellow'
                             : 'transparent',
                         }}
-                        onClick={() => selectDate(date)}
                       >
-                        {format(date, 'dd')}
-                      </button>
+                        {format(date, 'dd')} {tileContent?.(date)}
+                      </span>
                     </td>
                   );
                 })}
