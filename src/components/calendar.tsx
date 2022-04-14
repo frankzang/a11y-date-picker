@@ -1,16 +1,21 @@
+import { getDate, getMonth } from 'date-fns';
 import addDays from 'date-fns/addDays';
 import addMonths from 'date-fns/addMonths';
+import endOfMonth from 'date-fns/endOfMonth';
 import format from 'date-fns/format';
+import getDay from 'date-fns/getDay';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isEqual from 'date-fns/isEqual';
 import isSameDay from 'date-fns/isSameDay';
 import isSameMonth from 'date-fns/isSameMonth';
+import isToday from 'date-fns/isToday';
 import startOfMonth from 'date-fns/startOfMonth';
 import startOfWeek from 'date-fns/startOfWeek';
 import subMonths from 'date-fns/subMonths';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useId, useReducer, useLayoutEffect } from 'react';
 import { chunks } from '../utils/array';
+import './index.css';
 
 const WEEK_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
@@ -21,154 +26,235 @@ const getMonthDates = (date: Date) => {
   return dates;
 };
 
-const enableFirstAvailableDate = () =>
-  document
-    .querySelector('tr td[data-disabled="false"]')
-    ?.setAttribute('tabindex', '0');
+const getId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
+
+type State = {
+  activeDate: Date;
+  activeMonth: Date;
+  selectedDate: Date;
+  activeDescendant?: string;
+  isKeyboardInteraction: boolean;
+};
+
+type Action =
+  | { type: 'SELECT_DATE'; data: Date }
+  | { type: 'SET_ACTIVE_DATE'; data: Date }
+  | { type: 'INCREMENT_MONTH' }
+  | { type: 'DECREMENT_MONTH' }
+  | { type: 'SET_ACTIVE_DESCENDANT'; data: string }
+  | { type: 'SET_KEYBOARD_INTERACTION'; data: boolean };
+
+const calendarReducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SELECT_DATE':
+      return {
+        ...state,
+        selectedDate: action.data,
+        activeDate: action.data,
+        activeMonth: startOfMonth(action.data),
+      };
+
+    case 'SET_ACTIVE_DATE':
+      return {
+        ...state,
+        activeDate: action.data,
+        isKeyboardInteraction: true,
+      };
+
+    case 'INCREMENT_MONTH':
+      return {
+        ...state,
+        activeDate: addMonths(state.activeDate, 1),
+      };
+
+    case 'DECREMENT_MONTH':
+      return {
+        ...state,
+        activeDate: subMonths(state.activeDate, 1),
+      };
+
+    case 'SET_KEYBOARD_INTERACTION':
+      return { ...state, isKeyboardInteraction: action.data };
+
+    case 'SET_ACTIVE_DESCENDANT':
+      return { ...state, activeDescendant: action.data };
+
+    default:
+      throw new Error('Invalid action passed to calendarReducer');
+  }
+};
 
 type CalendarProps = {
   date?: Date;
   min?: Date;
   max?: Date;
-  tileClassName?: (date: Date) => string;
   tileContent?: (date: Date) => string;
   onClick?(date: Date): void;
 };
-
 export const Calendar = ({
   date,
   min,
   max,
-  tileClassName,
   tileContent,
   onClick,
 }: CalendarProps) => {
-  const [activeMonth, setActiveMonthDate] = useState(() => date ?? new Date());
-  const [activeDate, setActiveDate] = useState<Date>(date ?? new Date());
-  const month = useMemo(() => getMonthDates(activeMonth), [activeMonth]);
+  const [state, dispatch] = useReducer(calendarReducer, {
+    activeDate: date ?? new Date(),
+    activeMonth: date ?? new Date(),
+    selectedDate: date ?? new Date(),
+    activeDescendant: '',
+    isKeyboardInteraction: false,
+  });
+  const month = useMemo(
+    () => getMonthDates(state.activeDate),
+    [state.activeDate]
+  );
   const weeks = useMemo(() => chunks(month, 7), [month]);
+  const isPrevDisabled = min && isBefore(startOfMonth(state.activeDate), min);
+  const isNextDisabled =
+    max &&
+    (isSameMonth(state.activeDate, max) || isAfter(state.activeDate, max));
   const tableRef = useRef<HTMLTableElement>(null);
-  const focusActiveDateRef = useRef(false);
 
   const prevMonth = () => {
-    setActiveMonthDate((date) => subMonths(date, 1));
+    dispatch({ type: 'DECREMENT_MONTH' });
   };
 
   const nextMonth = () => {
-    setActiveMonthDate((date) => addMonths(date, 1));
+    dispatch({ type: 'INCREMENT_MONTH' });
   };
 
-  const selectDate = (date: Date) => {
-    setActiveDate(date);
-    setActiveMonthDate(date);
+  const onSelectDate = (date: Date) => {
+    dispatch({ type: 'SELECT_DATE', data: date });
     onClick?.(date);
   };
 
-  useEffect(() => {
-    if (!date) return;
+  const activateCell = (row: number, col: number) => {
+    const nextCell = tableRef.current?.querySelector<HTMLButtonElement>(
+      `[data-row="${row}"][data-col="${col}"]`
+    );
+    if (!nextCell) return;
 
-    if (isSameDay(date, activeDate)) return;
+    const newActiveDate = weeks[row][col];
 
-    setActiveDate(date);
-    setActiveMonthDate(date);
-  }, [date, selectDate]);
+    dispatch({ type: 'SET_ACTIVE_DATE', data: newActiveDate });
+  };
 
-  useEffect(() => {
-    enableFirstAvailableDate();
-  }, [activeMonth]);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    const currentCell = e.currentTarget!;
+    const { row, col, state } = currentCell?.dataset;
+    const rowNumber = Number(row);
+    const colNumber = Number(col);
+    const isDisabled = state === 'disabled';
+    const cellDate = weeks[rowNumber][colNumber];
 
-  useEffect(() => {
-    const onKeyPress = (e: KeyboardEvent) => {
-      const elm = (e.target as HTMLElement).closest('td')!;
-      const parent = elm.parentElement;
-      const { col } = elm?.dataset;
-
-      switch (e.key) {
-        case 'ArrowUp':
-          const up = parent?.previousElementSibling?.querySelector(
-            `[data-col="${col}"][data-disabled="false"]`
-          ) as HTMLElement;
-
-          if (!up) return;
-
-          elm.setAttribute('tabindex', '-1');
-          up.setAttribute('tabindex', '0');
-          up?.focus();
-          return;
-        case 'ArrowDown':
-          const down = parent?.nextElementSibling?.querySelector(
-            `[data-col="${col}"][data-disabled="false"]`
-          ) as HTMLElement;
-
-          if (!down) return;
-
-          elm.setAttribute('tabindex', '-1');
-          down?.setAttribute('tabindex', '0');
-          down?.focus();
-          return;
-        case 'ArrowLeft':
-          const left = elm?.previousElementSibling as HTMLElement;
-          if (left?.getAttribute('data-disabled') === 'true') return;
-
-          elm.setAttribute('tabindex', '-1');
-          left?.setAttribute('tabindex', '0');
-          left?.focus();
-          return;
-        case 'ArrowRight':
-          const right = elm?.nextElementSibling as HTMLElement;
-          if (right?.getAttribute('data-disabled') === 'true') return;
-
-          elm.setAttribute('tabindex', '-1');
-          right?.setAttribute('tabindex', '0');
-          right?.focus();
-          return;
-        case ' ':
-        case 'Enter':
-          elm.click();
-          focusActiveDateRef.current = true;
-          return;
-        default:
-          return;
+    switch (e.key) {
+      case 'ArrowUp': {
+        activateCell(rowNumber - 1, colNumber);
+        break;
       }
-    };
+      case 'ArrowDown': {
+        activateCell(rowNumber + 1, colNumber);
+        break;
+      }
+      case 'ArrowLeft': {
+        activateCell(rowNumber, colNumber - 1);
+        break;
+      }
+      case 'ArrowRight': {
+        activateCell(rowNumber, colNumber + 1);
+        break;
+      }
+      case 'Home': {
+        e.ctrlKey ? activateCell(0, 0) : activateCell(rowNumber, 0);
+        break;
+      }
+      case 'End': {
+        e.ctrlKey ? activateCell(5, 6) : activateCell(rowNumber, 6);
+        break;
+      }
+      case ' ':
+      case 'Enter':
+        !isDisabled && onSelectDate(cellDate);
+      default:
+        break;
+    }
+  };
 
-    tableRef.current?.addEventListener('keydown', onKeyPress);
+  // Keep the date from the props in sync with the date on state
+  useEffect(() => {
+    if (!date || isSameDay(date, state.selectedDate)) return;
 
-    return () => tableRef.current?.removeEventListener('keydown', onKeyPress);
+    dispatch({ type: 'SELECT_DATE', data: date });
+  }, [date]);
+
+  // Set initial active descendant based on the active date
+  useEffect(() => {
+    const initialActiveDescendant = tableRef.current?.querySelector(
+      `#${getId(state.activeDate)}`
+    )!;
+
+    dispatch({
+      type: 'SET_ACTIVE_DESCENDANT',
+      data: initialActiveDescendant?.id,
+    });
   }, []);
 
+  // Set the focusable day of the month on month change, in case the active date is not present
   useEffect(() => {
-    if (!focusActiveDateRef.current) return;
-
     tableRef.current
-      ?.querySelector<HTMLElement>('[data-active="true"]')
-      ?.focus();
-    focusActiveDateRef.current = false;
-  }, [activeDate]);
+      ?.querySelector<HTMLElement>(`#${getId(state.activeDate)}`)
+      ?.setAttribute('tabindex', '0');
+  }, [state.activeDate]);
+
+  // Manage focus of the active date, only if it's keyboard interaction
+  useLayoutEffect(() => {
+    if (!state.isKeyboardInteraction) return;
+
+    let dateToFocus = tableRef.current?.querySelector<HTMLElement>(
+      `#${getId(state.activeDate)}`
+    );
+
+    dateToFocus?.focus();
+
+    dispatch({ type: 'SET_ACTIVE_DESCENDANT', data: dateToFocus?.id! });
+    dispatch({ type: 'SET_KEYBOARD_INTERACTION', data: false });
+  }, [state.activeDate, state.isKeyboardInteraction]);
 
   return (
     <div>
-      <div role="log" aria-live="polite" aria-relevant="text">
-        {format(activeMonth, 'MMMM, yyyy')}
+      <div
+        role="log"
+        aria-live="polite"
+        aria-relevant="text"
+        aria-atomic="true"
+      >
+        {format(state.activeDate, 'MMMM yyyy')}
       </div>
       <div>
         <button
           onClick={prevMonth}
-          disabled={min && isSameMonth(min, activeMonth)}
+          disabled={isPrevDisabled}
+          aria-label="Prev month"
         >
           Prev
-        </button>{' '}
+        </button>
         <button
           onClick={nextMonth}
-          disabled={max && isSameMonth(max, activeMonth)}
+          disabled={isNextDisabled}
+          aria-label="Next month"
         >
           Next
         </button>
       </div>
-      <table ref={tableRef}>
-        <caption>{format(activeMonth, 'MMMM')}</caption>
+      <table
+        role="grid"
+        ref={tableRef}
+        aria-activedescendant={state.activeDescendant}
+      >
+        <caption>Calendar</caption>
         <thead>
-          <tr>
+          <tr role="row">
             {WEEK_DAYS.map((day) => (
               <th key={day} scope="col">
                 {day}
@@ -179,33 +265,41 @@ export const Calendar = ({
         <tbody>
           {weeks.map((days, row) => {
             return (
-              <tr key={row.toString()}>
+              <tr key={row.toString()} role="row">
                 {days.map((date, col) => {
-                  const isDateSelected = isSameDay(date, activeDate);
+                  const id = getId(date);
+                  const isDateActive = isSameDay(date, state.activeDate);
+                  const isDateSelected = isSameDay(date, state.selectedDate);
                   const isDateDisabled =
                     (min && isBefore(date, min)) ||
                     (max && (isEqual(date, max) || isAfter(date, max)));
+                  const title = format(date, 'EEEE, MMMM ii, yyyy');
+                  const cellState = isDateSelected
+                    ? 'selected'
+                    : isDateActive
+                    ? 'active'
+                    : isDateDisabled
+                    ? 'disabled'
+                    : 'idle';
 
                   return (
                     <td
-                      key={date.toString()}
-                      aria-label={format(date, 'MMM, dd, E')}
+                      key={id}
+                      id={id}
+                      role="gridcell"
+                      tabIndex={isDateActive ? 0 : -1}
                       aria-selected={isDateSelected}
                       aria-disabled={isDateDisabled}
-                      onClick={() => selectDate(date)}
                       data-row={row}
                       data-col={col}
-                      data-active={isDateSelected}
-                      data-disabled={isDateDisabled}
-                      className={tileClassName?.(date)}
-                      tabIndex={-1}
+                      data-today={isToday(date) ? '' : null}
+                      data-state={cellState}
+                      onClick={() => !isDateDisabled && onSelectDate(date)}
+                      onKeyDown={onKeyDown}
                     >
                       <span
-                        style={{
-                          backgroundColor: isDateSelected
-                            ? 'yellow'
-                            : 'transparent',
-                        }}
+                        title={title}
+                        aria-label={title}
                       >
                         {format(date, 'dd')} {tileContent?.(date)}
                       </span>

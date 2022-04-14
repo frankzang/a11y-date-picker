@@ -1,0 +1,7 @@
+td:focus-within {
+    outline: auto;
+}
+
+td button:focus {
+    outline: none;
+}
