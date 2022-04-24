@@ -273,7 +273,7 @@ export const Calendar = ({
                   const isDateDisabled =
                     (min && isBefore(date, min)) ||
                     (max && (isEqual(date, max) || isAfter(date, max)));
-                  const title = format(date, 'EEEE, MMMM ii, yyyy');
+                  const title = format(date, 'EEEE, MMMM dd, yyyy');
                   const cellState = isDateSelected
                     ? 'selected'
                     : isDateActive
