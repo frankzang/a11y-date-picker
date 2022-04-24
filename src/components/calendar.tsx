@@ -142,10 +142,10 @@ export const Calendar = ({
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     const currentCell = e.currentTarget!;
-    const { row, col, state } = currentCell?.dataset;
+    const { row, col } = currentCell?.dataset;
     const rowNumber = Number(row);
     const colNumber = Number(col);
-    const isDisabled = state === 'disabled';
+    const isDisabled = currentCell.hasAttribute('data-disabled');
     const cellDate = weeks[rowNumber][colNumber];
 
     switch (e.key) {
@@ -296,8 +296,6 @@ export const Calendar = ({
                     ? 'selected'
                     : isDateActive
                     ? 'active'
-                    : isDateDisabled
-                    ? 'disabled'
                     : 'idle';
 
                   return (
@@ -316,6 +314,7 @@ export const Calendar = ({
                         isSameMonth(date, state.activeDate) ? '' : null
                       }
                       data-state={cellState}
+                      data-disabled={isDateDisabled ? '' : null}
                       onClick={() => !isDateDisabled && onSelectDate(date)}
                       onKeyDown={onKeyDown}
                     >

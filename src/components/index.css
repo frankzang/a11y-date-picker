@@ -100,7 +100,7 @@
     color: #fff;
 }
 
-[data-state="disabled"] {
+[data-disabled] {
     color: var(--disabled-text-color);
     cursor: default;
 }
