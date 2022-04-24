@@ -34,10 +34,9 @@ const getId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
 
 type State = {
   activeDate: Date;
-  activeMonth: Date;
   selectedDate: Date;
   activeDescendant?: string;
-  isKeyboardInteraction: boolean;
+  focusNextDate: boolean;
 };
 
 type Action =
@@ -46,7 +45,7 @@ type Action =
   | { type: 'INCREMENT_MONTH' }
   | { type: 'DECREMENT_MONTH' }
   | { type: 'SET_ACTIVE_DESCENDANT'; data: string }
-  | { type: 'SET_KEYBOARD_INTERACTION'; data: boolean };
+  | { type: 'SET_FOCUS_NEXT_DATE'; data: boolean };
 
 const calendarReducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -55,14 +54,14 @@ const calendarReducer = (state: State, action: Action): State => {
         ...state,
         selectedDate: action.data,
         activeDate: action.data,
-        activeMonth: startOfMonth(action.data),
+        focusNextDate: true,
       };
 
     case 'SET_ACTIVE_DATE':
       return {
         ...state,
         activeDate: action.data,
-        isKeyboardInteraction: true,
+        focusNextDate: true,
       };
 
     case 'INCREMENT_MONTH':
@@ -77,8 +76,8 @@ const calendarReducer = (state: State, action: Action): State => {
         activeDate: subMonths(state.activeDate, 1),
       };
 
-    case 'SET_KEYBOARD_INTERACTION':
-      return { ...state, isKeyboardInteraction: action.data };
+    case 'SET_FOCUS_NEXT_DATE':
+      return { ...state, focusNextDate: action.data };
 
     case 'SET_ACTIVE_DESCENDANT':
       return { ...state, activeDescendant: action.data };
@@ -104,10 +103,9 @@ export const Calendar = ({
 }: CalendarProps) => {
   const [state, dispatch] = useReducer(calendarReducer, {
     activeDate: date ?? new Date(),
-    activeMonth: date ?? new Date(),
     selectedDate: date ?? new Date(),
     activeDescendant: '',
-    isKeyboardInteraction: false,
+    focusNextDate: false,
   });
   const month = useMemo(
     () => getMonthDates(state.activeDate),
@@ -207,9 +205,9 @@ export const Calendar = ({
       ?.setAttribute('tabindex', '0');
   }, [state.activeDate]);
 
-  // Manage focus of the active date, only if it's keyboard interaction
+  // Manage focus of the active date
   useLayoutEffect(() => {
-    if (!state.isKeyboardInteraction) return;
+    if (!state.focusNextDate) return;
 
     let dateToFocus = tableRef.current?.querySelector<HTMLElement>(
       `#${getId(state.activeDate)}`
@@ -218,8 +216,8 @@ export const Calendar = ({
     dateToFocus?.focus();
 
     dispatch({ type: 'SET_ACTIVE_DESCENDANT', data: dateToFocus?.id! });
-    dispatch({ type: 'SET_KEYBOARD_INTERACTION', data: false });
-  }, [state.activeDate, state.isKeyboardInteraction]);
+    dispatch({ type: 'SET_FOCUS_NEXT_DATE', data: false });
+  }, [state.activeDate, state.focusNextDate]);
 
   return (
     <div data-table-container>
@@ -270,7 +268,7 @@ export const Calendar = ({
         ref={tableRef}
         aria-activedescendant={state.activeDescendant}
       >
-        <caption data-table-caption>Calendar</caption>
+        <caption data-sr-only>Calendar</caption>
         <thead>
           <tr role="row">
             {WEEK_DAYS.map((day) => (
@@ -303,15 +301,15 @@ export const Calendar = ({
                       key={id}
                       id={id}
                       role="gridcell"
-                      tabIndex={isDateActive ? 0 : -1}
+                      tabIndex={isDateActive ? 0 : undefined}
                       aria-selected={isDateSelected}
                       aria-disabled={isDateDisabled}
                       data-table-data
                       data-row={row}
                       data-col={col}
                       data-today={isToday(date) ? '' : null}
-                      data-thismonth={
-                        isSameMonth(date, state.activeDate) ? '' : null
+                      data-faded={
+                        !isSameMonth(date, state.activeDate) ? '' : null
                       }
                       data-state={cellState}
                       data-disabled={isDateDisabled ? '' : null}
@@ -319,7 +317,8 @@ export const Calendar = ({
                       onKeyDown={onKeyDown}
                     >
                       <span title={title} aria-label={title}>
-                        {format(date, 'dd')} {tileContent?.(date)}
+                        {format(date, 'dd')}
+                        {tileContent?.(date)}
                       </span>
                     </td>
                   );

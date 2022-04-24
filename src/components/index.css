@@ -58,7 +58,7 @@
     width: 100%;
 }
 
-[data-table-caption] {
+[data-sr-only] {
     clip: rect(0 0 0 0);
     clip-path: inset(50%);
     height: 1px;
@@ -105,6 +105,6 @@
     cursor: default;
 }
 
-[data-table-data]:not([data-thismonth]) {
+[data-faded]:not([data-state="selected"]) {
     color: var(--disabled-text-color);
 }
