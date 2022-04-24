@@ -1,7 +1,110 @@
-td:focus-within {
-    outline: auto;
+:root {
+    --active-color: #00000010;
+    --selected-color: #295FFF;
+    --active-text-color: #000000;
+    --disabled-text-color: #00000050;
 }
 
-td button:focus {
-    outline: none;
+[data-table-container] * {
+    box-sizing: border-box;
+}
+
+[data-table-container] {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 300px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+}
+
+[data-table-header] {
+    display: grid;
+    grid-template-columns: 2rem 1fr 2rem;
+    place-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px;
+}
+
+[data-month-control] {
+    border: none;
+    background-color: transparent;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+[data-month-control]:disabled {
+    cursor: default;
+}
+
+[data-icon] {
+    transform: scale(.8);
+    fill: var(--active-text-color);
+}
+
+[data-month-control]:disabled [data-icon] {
+    fill: var(--disabled-text-color);
+}
+
+[data-table-title] {
+    text-transform: uppercase;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+[data-table] {
+    width: 100%;
+}
+
+[data-table-caption] {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+[data-table-head] {
+    text-transform: capitalize;
+    font-size: 1rem;
+    color: var(--active-text-color);
+    padding: 10px;
+}
+
+[data-table-data] {
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--active-text-color);
+}
+
+[data-today]:not([data-state="selected"]) {
+    text-decoration: underline;
+}
+
+[data-state="idle"]:hover {
+    background-color: var(--active-color);
+}
+
+[data-state="active"] {
+    background-color: var(--active-color)
+}
+
+[data-state="selected"] {
+    background-color: var(--selected-color);
+    color: #fff;
+}
+
+[data-state="disabled"] {
+    color: var(--disabled-text-color);
+    cursor: default;
+}
+
+[data-table-data]:not([data-thismonth]) {
+    color: var(--disabled-text-color);
 }

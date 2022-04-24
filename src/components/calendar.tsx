@@ -1,9 +1,7 @@
 import { getDate, getMonth } from 'date-fns';
 import addDays from 'date-fns/addDays';
 import addMonths from 'date-fns/addMonths';
-import endOfMonth from 'date-fns/endOfMonth';
 import format from 'date-fns/format';
-import getDay from 'date-fns/getDay';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isEqual from 'date-fns/isEqual';
@@ -13,7 +11,13 @@ import isToday from 'date-fns/isToday';
 import startOfMonth from 'date-fns/startOfMonth';
 import startOfWeek from 'date-fns/startOfWeek';
 import subMonths from 'date-fns/subMonths';
-import React, { useEffect, useMemo, useRef, useId, useReducer, useLayoutEffect } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useReducer,
+  useLayoutEffect,
+} from 'react';
 import { chunks } from '../utils/array';
 import './index.css';
 
@@ -222,41 +226,59 @@ export const Calendar = ({
   }, [state.activeDate, state.isKeyboardInteraction]);
 
   return (
-    <div>
-      <div
-        role="log"
-        aria-live="polite"
-        aria-relevant="text"
-        aria-atomic="true"
-      >
-        {format(state.activeDate, 'MMMM yyyy')}
-      </div>
-      <div>
+    <div data-table-container>
+      <div data-table-header>
         <button
+          data-month-control="prev"
           onClick={prevMonth}
           disabled={isPrevDisabled}
           aria-label="Prev month"
         >
-          Prev
+          <svg
+            data-icon
+            xmlns="http://www.w3.org/2000/svg"
+            height="48"
+            width="48"
+          >
+            <path d="M28.05 36 16 23.95 28.05 11.9 30.2 14.05 20.3 23.95 30.2 33.85Z" />
+          </svg>
         </button>
+        <div
+          data-table-title
+          role="log"
+          aria-live="polite"
+          aria-relevant="text"
+          aria-atomic="true"
+        >
+          {format(state.activeDate, 'MMMM yyyy')}
+        </div>
         <button
+          data-month-control="next"
           onClick={nextMonth}
           disabled={isNextDisabled}
           aria-label="Next month"
         >
-          Next
+          <svg
+            data-icon
+            xmlns="http://www.w3.org/2000/svg"
+            height="48"
+            width="48"
+          >
+            <path d="M18.75 36 16.6 33.85 26.5 23.95 16.6 14.05 18.75 11.9 30.8 23.95Z" />
+          </svg>
         </button>
       </div>
       <table
+        data-table
         role="grid"
         ref={tableRef}
         aria-activedescendant={state.activeDescendant}
       >
-        <caption>Calendar</caption>
+        <caption data-table-caption>Calendar</caption>
         <thead>
           <tr role="row">
             {WEEK_DAYS.map((day) => (
-              <th key={day} scope="col">
+              <th key={day} scope="col" data-table-head>
                 {day}
               </th>
             ))}
@@ -290,17 +312,18 @@ export const Calendar = ({
                       tabIndex={isDateActive ? 0 : -1}
                       aria-selected={isDateSelected}
                       aria-disabled={isDateDisabled}
+                      data-table-data
                       data-row={row}
                       data-col={col}
                       data-today={isToday(date) ? '' : null}
+                      data-thismonth={
+                        isSameMonth(date, state.activeDate) ? '' : null
+                      }
                       data-state={cellState}
                       onClick={() => !isDateDisabled && onSelectDate(date)}
                       onKeyDown={onKeyDown}
                     >
-                      <span
-                        title={title}
-                        aria-label={title}
-                      >
+                      <span title={title} aria-label={title}>
                         {format(date, 'dd')} {tileContent?.(date)}
                       </span>
                     </td>
