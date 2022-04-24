@@ -134,12 +134,8 @@ export const Calendar = ({
   };
 
   const activateCell = (row: number, col: number) => {
-    const nextCell = tableRef.current?.querySelector<HTMLButtonElement>(
-      `[data-row="${row}"][data-col="${col}"]`
-    );
-    if (!nextCell) return;
-
     const newActiveDate = weeks[row][col];
+    if (!newActiveDate) return;
 
     dispatch({ type: 'SET_ACTIVE_DATE', data: newActiveDate });
   };
