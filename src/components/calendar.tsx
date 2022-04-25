@@ -35,8 +35,8 @@ const getId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
 type State = {
   activeDate: Date;
   selectedDate: Date;
-  activeDescendant?: string;
-  focusNextDate: boolean;
+  focusActiveDate: boolean;
+  activeDescendant: string;
 };
 
 type Action =
@@ -44,8 +44,7 @@ type Action =
   | { type: 'SET_ACTIVE_DATE'; data: Date }
   | { type: 'INCREMENT_MONTH' }
   | { type: 'DECREMENT_MONTH' }
-  | { type: 'SET_ACTIVE_DESCENDANT'; data: string }
-  | { type: 'SET_FOCUS_NEXT_DATE'; data: boolean };
+  | { type: 'FOCUS_ACTIVE_DATE'; data: boolean };
 
 const calendarReducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -54,33 +53,36 @@ const calendarReducer = (state: State, action: Action): State => {
         ...state,
         selectedDate: action.data,
         activeDate: action.data,
-        focusNextDate: true,
+        activeDescendant: getId(action.data),
+        focusActiveDate: true,
       };
 
     case 'SET_ACTIVE_DATE':
       return {
         ...state,
         activeDate: action.data,
-        focusNextDate: true,
+        focusActiveDate: true,
+        activeDescendant: getId(action.data),
       };
 
     case 'INCREMENT_MONTH':
+      const nextMonth = addMonths(state.activeDate, 1);
       return {
         ...state,
-        activeDate: addMonths(state.activeDate, 1),
+        activeDate: nextMonth,
+        activeDescendant: getId(nextMonth),
       };
 
     case 'DECREMENT_MONTH':
+      const prevMonth = subMonths(state.activeDate, 1)
       return {
         ...state,
-        activeDate: subMonths(state.activeDate, 1),
+        activeDate: prevMonth,
+        activeDescendant: getId(prevMonth),
       };
 
-    case 'SET_FOCUS_NEXT_DATE':
-      return { ...state, focusNextDate: action.data };
-
-    case 'SET_ACTIVE_DESCENDANT':
-      return { ...state, activeDescendant: action.data };
+    case 'FOCUS_ACTIVE_DATE':
+      return { ...state, focusActiveDate: action.data };
 
     default:
       throw new Error('Invalid action passed to calendarReducer');
@@ -104,8 +106,8 @@ export const Calendar = ({
   const [state, dispatch] = useReducer(calendarReducer, {
     activeDate: date ?? new Date(),
     selectedDate: date ?? new Date(),
-    activeDescendant: '',
-    focusNextDate: false,
+    activeDescendant: getId(date ?? new Date()),
+    focusActiveDate: false,
   });
   const month = useMemo(
     () => getMonthDates(state.activeDate),
@@ -186,28 +188,9 @@ export const Calendar = ({
     dispatch({ type: 'SELECT_DATE', data: date });
   }, [date]);
 
-  // Set initial active descendant based on the active date
-  useEffect(() => {
-    const initialActiveDescendant = tableRef.current?.querySelector(
-      `#${getId(state.activeDate)}`
-    )!;
-
-    dispatch({
-      type: 'SET_ACTIVE_DESCENDANT',
-      data: initialActiveDescendant?.id,
-    });
-  }, []);
-
-  // Set the focusable day of the month on month change, in case the active date is not present
-  useEffect(() => {
-    tableRef.current
-      ?.querySelector<HTMLElement>(`#${getId(state.activeDate)}`)
-      ?.setAttribute('tabindex', '0');
-  }, [state.activeDate]);
-
   // Manage focus of the active date
   useLayoutEffect(() => {
-    if (!state.focusNextDate) return;
+    if (!state.focusActiveDate) return;
 
     let dateToFocus = tableRef.current?.querySelector<HTMLElement>(
       `#${getId(state.activeDate)}`
@@ -215,9 +198,8 @@ export const Calendar = ({
 
     dateToFocus?.focus();
 
-    dispatch({ type: 'SET_ACTIVE_DESCENDANT', data: dateToFocus?.id! });
-    dispatch({ type: 'SET_FOCUS_NEXT_DATE', data: false });
-  }, [state.activeDate, state.focusNextDate]);
+    dispatch({ type: 'FOCUS_ACTIVE_DATE', data: false });
+  }, [state.activeDate, state.focusActiveDate]);
 
   return (
     <div data-table-container>
