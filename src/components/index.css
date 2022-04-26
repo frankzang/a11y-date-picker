@@ -68,14 +68,14 @@
     width: 1px;
 }
 
-[data-table-head] {
+[data-table-headercell] {
     text-transform: capitalize;
     font-size: 1rem;
     color: var(--active-text-color);
     padding: 10px;
 }
 
-[data-table-data] {
+[data-table-datacell] {
     padding: 10px;
     border-radius: 5px;
     cursor: pointer;

@@ -11,13 +11,7 @@ import isToday from 'date-fns/isToday';
 import startOfMonth from 'date-fns/startOfMonth';
 import startOfWeek from 'date-fns/startOfWeek';
 import subMonths from 'date-fns/subMonths';
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useReducer,
-  useLayoutEffect,
-} from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
 import { chunks } from '../utils/array';
 import './index.css';
 
@@ -35,16 +29,13 @@ const getId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
 type State = {
   activeDate: Date;
   selectedDate: Date;
-  focusActiveDate: boolean;
-  activeDescendant: string;
 };
 
 type Action =
   | { type: 'SELECT_DATE'; data: Date }
   | { type: 'SET_ACTIVE_DATE'; data: Date }
   | { type: 'INCREMENT_MONTH' }
-  | { type: 'DECREMENT_MONTH' }
-  | { type: 'FOCUS_ACTIVE_DATE'; data: boolean };
+  | { type: 'DECREMENT_MONTH' };
 
 const calendarReducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -53,16 +44,12 @@ const calendarReducer = (state: State, action: Action): State => {
         ...state,
         selectedDate: action.data,
         activeDate: action.data,
-        activeDescendant: getId(action.data),
-        focusActiveDate: true,
       };
 
     case 'SET_ACTIVE_DATE':
       return {
         ...state,
         activeDate: action.data,
-        focusActiveDate: true,
-        activeDescendant: getId(action.data),
       };
 
     case 'INCREMENT_MONTH':
@@ -70,19 +57,14 @@ const calendarReducer = (state: State, action: Action): State => {
       return {
         ...state,
         activeDate: nextMonth,
-        activeDescendant: getId(nextMonth),
       };
 
     case 'DECREMENT_MONTH':
-      const prevMonth = subMonths(state.activeDate, 1)
+      const prevMonth = subMonths(state.activeDate, 1);
       return {
         ...state,
         activeDate: prevMonth,
-        activeDescendant: getId(prevMonth),
       };
-
-    case 'FOCUS_ACTIVE_DATE':
-      return { ...state, focusActiveDate: action.data };
 
     default:
       throw new Error('Invalid action passed to calendarReducer');
@@ -106,8 +88,6 @@ export const Calendar = ({
   const [state, dispatch] = useReducer(calendarReducer, {
     activeDate: date ?? new Date(),
     selectedDate: date ?? new Date(),
-    activeDescendant: getId(date ?? new Date()),
-    focusActiveDate: false,
   });
   const month = useMemo(
     () => getMonthDates(state.activeDate),
@@ -118,7 +98,7 @@ export const Calendar = ({
   const isNextDisabled =
     max &&
     (isSameMonth(state.activeDate, max) || isAfter(state.activeDate, max));
-  const tableRef = useRef<HTMLTableElement>(null);
+  const activeDescendant = getId(state.activeDate);
 
   const prevMonth = () => {
     dispatch({ type: 'DECREMENT_MONTH' });
@@ -140,12 +120,15 @@ export const Calendar = ({
     dispatch({ type: 'SET_ACTIVE_DATE', data: newActiveDate });
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    const currentCell = e.currentTarget!;
-    const { row, col } = currentCell?.dataset;
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTableElement>) => {
+    const currentActiveCell =
+      e.currentTarget.querySelector<HTMLTableCellElement>(
+        `#${getId(state.activeDate)}`
+      )!;
+    const { row, col } = currentActiveCell?.dataset;
     const rowNumber = Number(row);
     const colNumber = Number(col);
-    const isDisabled = currentCell.hasAttribute('data-disabled');
+    const isDisabled = currentActiveCell.hasAttribute('data-disabled');
     const cellDate = weeks[rowNumber][colNumber];
 
     switch (e.key) {
@@ -187,19 +170,6 @@ export const Calendar = ({
 
     dispatch({ type: 'SELECT_DATE', data: date });
   }, [date]);
-
-  // Manage focus of the active date
-  useLayoutEffect(() => {
-    if (!state.focusActiveDate) return;
-
-    let dateToFocus = tableRef.current?.querySelector<HTMLElement>(
-      `#${getId(state.activeDate)}`
-    );
-
-    dateToFocus?.focus();
-
-    dispatch({ type: 'FOCUS_ACTIVE_DATE', data: false });
-  }, [state.activeDate, state.focusActiveDate]);
 
   return (
     <div data-table-container>
@@ -245,16 +215,17 @@ export const Calendar = ({
         </button>
       </div>
       <table
-        data-table
+        tabIndex={0}
         role="grid"
-        ref={tableRef}
-        aria-activedescendant={state.activeDescendant}
+        aria-activedescendant={activeDescendant}
+        onKeyDown={onKeyDown}
+        data-table
       >
         <caption data-sr-only>Calendar</caption>
         <thead>
           <tr role="row">
             {WEEK_DAYS.map((day) => (
-              <th key={day} scope="col" data-table-head>
+              <th key={day} scope="col" data-table-headercell>
                 {day}
               </th>
             ))}
@@ -283,10 +254,9 @@ export const Calendar = ({
                       key={id}
                       id={id}
                       role="gridcell"
-                      tabIndex={isDateActive ? 0 : undefined}
                       aria-selected={isDateSelected}
                       aria-disabled={isDateDisabled}
-                      data-table-data
+                      data-table-datacell
                       data-row={row}
                       data-col={col}
                       data-today={isToday(date) ? '' : null}
@@ -296,7 +266,6 @@ export const Calendar = ({
                       data-state={cellState}
                       data-disabled={isDateDisabled ? '' : null}
                       onClick={() => !isDateDisabled && onSelectDate(date)}
-                      onKeyDown={onKeyDown}
                     >
                       <span title={title} aria-label={title}>
                         {format(date, 'dd')}
