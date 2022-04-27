@@ -105,6 +105,6 @@
     cursor: default;
 }
 
-[data-faded]:not([data-state="selected"]) {
+[data-outsidemonth]:not([data-state="selected"]) {
     color: var(--disabled-text-color);
 }
