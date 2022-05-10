@@ -15,7 +15,15 @@ import React, { useEffect, useMemo, useReducer } from 'react';
 import { chunks } from '../utils/array';
 import './index.css';
 
-const WEEK_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const WEEK_DAYS = [
+  { name: 'sunday', abbr: 'sun' },
+  { name: 'monday', abbr: 'mon' },
+  { name: 'tuesday', abbr: 'tue' },
+  { name: 'wednesday', abbr: 'wed' },
+  { name: 'thursday', abbr: 'thu' },
+  { name: 'friday', abbr: 'fri' },
+  { name: 'saturday', abbr: 'sat' },
+];
 
 const getMonthDates = (date: Date) => {
   const start = startOfWeek(startOfMonth(date));
@@ -230,9 +238,9 @@ export const Calendar = ({
         <caption data-sr-only>Calendar</caption>
         <thead>
           <tr role="row">
-            {WEEK_DAYS.map((day) => (
-              <th key={day} scope="col" data-table-headercell>
-                {day}
+            {WEEK_DAYS.map(({ name, abbr }) => (
+              <th key={abbr} scope="col" abbr={abbr} data-table-headercell>
+                {name}
               </th>
             ))}
           </tr>
