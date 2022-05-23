@@ -28,7 +28,7 @@ const WEEK_DAYS = [
   { name: 'thursday', abbr: 'thu' },
   { name: 'friday', abbr: 'fri' },
   { name: 'saturday', abbr: 'sat' },
-];
+] as const;
 
 const generateDates = (date: Date) => {
   const start = startOfWeek(startOfMonth(date));
@@ -38,35 +38,23 @@ const generateDates = (date: Date) => {
 
 const generateId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
 
-const isSameDayOrHigher = (date: Date, date2: Date) =>
+const isSameDayOrAfter = (date: Date, date2: Date) =>
   isSameDay(date, date2) || isAfter(date, date2);
 
-const isSameDayOrLess = (date: Date, date2: Date) =>
+const isSameDayOrBefore = (date: Date, date2: Date) =>
   isSameDay(date, date2) || isBefore(date, date2);
 
 const isDateInRange = (date: Date, { start, end }: any) =>
-  isSameDayOrHigher(date, start) && isSameDayOrLess(date, end);
+  isSameDayOrAfter(date, start) && isSameDayOrBefore(date, end);
 
 const checkIsDateInRange = (date: Date, start?: Date, end?: Date) => {
   if (start && end) return isDateInRange(date, { start, end });
 
-  if (start) return isSameDayOrHigher(date, start);
+  if (start) return isSameDayOrAfter(date, start);
 
-  if (end) return isSameDayOrLess(date, end);
+  if (end) return isSameDayOrBefore(date, end);
 
   return true;
-};
-
-const fixDateUnderflow = (date: Date, minDate?: Date) => {
-  if (minDate && isBefore(date, minDate)) return minDate;
-
-  return date;
-};
-
-const fixDateOverflow = (date: Date, maxDate?: Date) => {
-  if (maxDate && isAfter(date, maxDate)) return startOfMonth(date);
-
-  return date;
 };
 
 const getAttributeValue = (condition: boolean) =>
@@ -116,24 +104,60 @@ const calendarReducer = (state: State, action: Action): State => {
     }
 
     case 'INCREMENT_MONTH': {
-      const nextActiveDate = addMonths(state.activeDate, 1);
-      const activeDate = fixDateOverflow(nextActiveDate, state.maxDate);
+      const nextMonthDate = addMonths(state.activeDate, 1);
+
+      if (state.maxDate) {
+        const firstNextMonthsDay = startOfMonth(nextMonthDate);
+        // checks if next active date is before or equal the max available date
+        // if it's not, try the first day of the next month, and if this date
+        // is unavailable as well, keeps the current active date
+        const activeDate = isSameDayOrBefore(nextMonthDate, state.maxDate)
+          ? nextMonthDate
+          : isSameDayOrBefore(firstNextMonthsDay, state.maxDate)
+          ? firstNextMonthsDay
+          : state.activeDate;
+
+        return {
+          ...state,
+          activeDate,
+          visibleDates: isSameDay(activeDate, state.activeDate)
+            ? state.visibleDates
+            : generateDates(nextMonthDate),
+        };
+      }
 
       return {
         ...state,
-        activeDate,
-        visibleDates: generateDates(nextActiveDate),
+        activeDate: nextMonthDate,
+        visibleDates: isSameDay(nextMonthDate, state.activeDate)
+          ? state.visibleDates
+          : generateDates(nextMonthDate),
       };
     }
 
     case 'DECREMENT_MONTH': {
-      const nextActiveDate = subMonths(state.activeDate, 1);
-      const activeDate = fixDateUnderflow(nextActiveDate, state.minDate);
+      const prevMonthDate = subMonths(state.activeDate, 1);
+
+      if (state.minDate) {
+        const activeDate = isSameDayOrAfter(prevMonthDate, state.minDate)
+          ? prevMonthDate
+          : state.minDate;
+
+        return {
+          ...state,
+          activeDate,
+          visibleDates: isSameDay(activeDate, state.activeDate)
+            ? state.visibleDates
+            : generateDates(activeDate),
+        };
+      }
 
       return {
         ...state,
-        activeDate,
-        visibleDates: generateDates(activeDate),
+        activeDate: prevMonthDate,
+        visibleDates: isSameDay(prevMonthDate, state.activeDate)
+          ? state.visibleDates
+          : generateDates(prevMonthDate),
       };
     }
 
