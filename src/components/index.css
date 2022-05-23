@@ -83,28 +83,28 @@
     color: var(--active-text-color);
 }
 
-[data-today]:not([data-state="selected"]) {
+[data-datacell-today]:not([data-datacell-selected]) {
     text-decoration: underline;
 }
 
-[data-state="idle"]:hover {
+[data-table-datacell]:hover {
     background-color: var(--active-color);
 }
 
-[data-state="active"] {
+[data-datacell-active] {
     background-color: var(--active-color)
 }
 
-[data-state="selected"] {
+[data-datacell-selected] {
     background-color: var(--selected-color);
     color: #fff;
 }
 
-[data-disabled] {
+[data-datacell-disabled] {
     color: var(--disabled-text-color);
     cursor: default;
 }
 
-[data-outsidemonth]:not([data-state="selected"]) {
+[data-outsidemonth]:not([data-datacell-selected]) {
     color: var(--disabled-text-color);
 }
