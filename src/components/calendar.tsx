@@ -337,6 +337,8 @@ export const Calendar = ({
                       key={id}
                       id={id}
                       role="gridcell"
+                      title={title}
+                      aria-label={title}
                       aria-selected={getAttributeValue(isDateSelected)}
                       aria-disabled={getAttributeValue(isDateDisabled)}
                       data-table-datacell=""
@@ -349,7 +351,7 @@ export const Calendar = ({
                       data-datacell-disabled={getAttributeValue(isDateDisabled)}
                       onClick={() => !isDateDisabled && onSelectDate(date)}
                     >
-                      <span title={title} aria-label={title}>
+                      <span>
                         {format(date, 'dd')}
                         {tileContent?.(date)}
                       </span>
