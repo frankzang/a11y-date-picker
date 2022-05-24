@@ -170,8 +170,9 @@ type CalendarProps = {
   date?: Date;
   min?: Date;
   max?: Date;
-  tileContent?: (date: Date) => string;
   onSelect?(date: Date): void;
+  tileContent?: (date: Date) => string;
+  disabledDate?(date: Date): boolean;
 };
 export const Calendar = ({
   date,
@@ -179,6 +180,7 @@ export const Calendar = ({
   max,
   tileContent,
   onSelect,
+  disabledDate,
 }: CalendarProps) => {
   const [state, dispatch] = useReducer(
     calendarReducer,
@@ -278,6 +280,9 @@ export const Calendar = ({
     keyHandler();
   };
 
+  const checkisDateDisabled = (date: Date) =>
+    !checkIsDateInRange(date, min, max) || (disabledDate?.(date) ?? false);
+
   // Keep the date from the props in sync with the date on state
   useEffect(() => {
     if (!date || isSameDay(date, state.selectedDate)) return;
@@ -353,7 +358,7 @@ export const Calendar = ({
                   const id = generateId(date);
                   const isDateActive = isSameDay(date, state.activeDate);
                   const isDateSelected = isSameDay(date, state.selectedDate);
-                  const isDateDisabled = !checkIsDateInRange(date, min, max);
+                  const isDateDisabled = checkisDateDisabled(date);
                   const title = format(date, 'EEEE, MMMM dd, yyyy');
 
                   return (

@@ -87,7 +87,7 @@
     text-decoration: underline;
 }
 
-[data-table-datacell]:hover {
+[data-table-datacell]:hover:not([data-datacell-selected]) {
     background-color: var(--active-color);
 }
 
