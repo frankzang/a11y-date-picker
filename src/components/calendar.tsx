@@ -63,103 +63,29 @@ const getAttributeValue = (condition: boolean) =>
 type State = {
   activeDate: Date;
   selectedDate: Date;
-  minDate?: Date;
-  maxDate?: Date;
   visibleDates: Date[];
 };
 
 type Action =
   | { type: 'SELECT_DATE'; data: Date }
-  | { type: 'SET_ACTIVE_DATE'; data: Date }
-  | { type: 'INCREMENT_MONTH' }
-  | { type: 'DECREMENT_MONTH' };
+  | { type: 'SET_ACTIVE_DATE'; data: Date };
 
 const calendarReducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case 'SET_ACTIVE_DATE': {
-      const isDateInRange = checkIsDateInRange(
-        action.data,
-        state.minDate,
-        state.maxDate
-      );
-      if (!isDateInRange) return state;
-
-      const visibleDates = generateDates(action.data);
-
+    case 'SET_ACTIVE_DATE':
       return {
         ...state,
         activeDate: action.data,
-        visibleDates,
+        visibleDates: generateDates(action.data),
       };
-    }
 
-    case 'SELECT_DATE': {
-      if (isSameDay(action.data, state.selectedDate)) return state;
-
+    case 'SELECT_DATE':
       return {
         ...state,
         activeDate: action.data,
         selectedDate: action.data,
+        visibleDates: generateDates(action.data),
       };
-    }
-
-    case 'INCREMENT_MONTH': {
-      const nextMonthDate = addMonths(state.activeDate, 1);
-
-      if (state.maxDate) {
-        const firstNextMonthsDay = startOfMonth(nextMonthDate);
-        // checks if next active date is before or equal the max available date
-        // if it's not, try the first day of the next month, and if this date
-        // is unavailable as well, keeps the current active date
-        const activeDate = isSameDayOrBefore(nextMonthDate, state.maxDate)
-          ? nextMonthDate
-          : isSameDayOrBefore(firstNextMonthsDay, state.maxDate)
-          ? firstNextMonthsDay
-          : state.activeDate;
-
-        return {
-          ...state,
-          activeDate,
-          visibleDates: isSameDay(activeDate, state.activeDate)
-            ? state.visibleDates
-            : generateDates(nextMonthDate),
-        };
-      }
-
-      return {
-        ...state,
-        activeDate: nextMonthDate,
-        visibleDates: isSameDay(nextMonthDate, state.activeDate)
-          ? state.visibleDates
-          : generateDates(nextMonthDate),
-      };
-    }
-
-    case 'DECREMENT_MONTH': {
-      const prevMonthDate = subMonths(state.activeDate, 1);
-
-      if (state.minDate) {
-        const activeDate = isSameDayOrAfter(prevMonthDate, state.minDate)
-          ? prevMonthDate
-          : state.minDate;
-
-        return {
-          ...state,
-          activeDate,
-          visibleDates: isSameDay(activeDate, state.activeDate)
-            ? state.visibleDates
-            : generateDates(activeDate),
-        };
-      }
-
-      return {
-        ...state,
-        activeDate: prevMonthDate,
-        visibleDates: isSameDay(prevMonthDate, state.activeDate)
-          ? state.visibleDates
-          : generateDates(prevMonthDate),
-      };
-    }
 
     default:
       throw new Error('Invalid action passed to calendarReducer');
@@ -185,25 +111,17 @@ export const Calendar = ({
   const [state, dispatch] = useReducer(
     calendarReducer,
     {
-      activeDate: new Date(),
-      selectedDate: new Date(),
+      activeDate: date || new Date(),
+      selectedDate: date || new Date(),
       visibleDates: [],
-      activeMonth: new Date(),
     },
-    (state): State => {
-      const initialActiveDate = date ?? state.activeDate;
-      const visibleDates = generateDates(initialActiveDate);
-
-      return {
-        ...state,
-        activeDate: initialActiveDate,
-        selectedDate: initialActiveDate,
-        minDate: min ? startOfDay(min) : undefined,
-        maxDate: max ? startOfDay(max) : undefined,
-        visibleDates,
-      };
-    }
+    (state): State => ({
+      ...state,
+      visibleDates: generateDates(state.activeDate),
+    })
   );
+  const minDate = min ? startOfDay(min) : undefined;
+  const maxDate = max ? startOfDay(max) : undefined;
   const weeks = useMemo(
     () => chunks(state.visibleDates, 7),
     [state.visibleDates]
@@ -214,63 +132,94 @@ export const Calendar = ({
     max && isAfter(startOfMonth(addMonths(state.activeDate, 1)), max);
   const activeDescendant = generateId(state.activeDate);
 
+  const checkIsDateDisabled = (date: Date) =>
+    !checkIsDateInRange(date, min, max) || (disabledDate?.(date) ?? false);
+
   const handlePrevMonth = () => {
-    dispatch({ type: 'DECREMENT_MONTH' });
+    const prevMonthDate = subMonths(state.activeDate, 1);
+
+    if (!minDate) {
+      dispatch({ type: 'SET_ACTIVE_DATE', data: prevMonthDate });
+
+      return;
+    }
+
+    const activeDate = isSameDayOrAfter(prevMonthDate, minDate)
+      ? prevMonthDate
+      : minDate;
+
+    dispatch({ type: 'SET_ACTIVE_DATE', data: activeDate });
   };
 
   const handleNextMonth = () => {
-    dispatch({ type: 'INCREMENT_MONTH' });
+    const nextMonthDate = addMonths(state.activeDate, 1);
+
+    if (!maxDate) {
+      dispatch({ type: 'SET_ACTIVE_DATE', data: nextMonthDate });
+
+      return;
+    }
+
+    const firstNextMonthsDay = startOfMonth(nextMonthDate);
+    // checks if next active date is before or equal the max available date
+    // if it's not, try the first day of the next month, and if this date
+    // is unavailable as well, keeps the current active date
+    const activeDate = isSameDayOrBefore(nextMonthDate, maxDate)
+      ? nextMonthDate
+      : isSameDayOrBefore(firstNextMonthsDay, maxDate)
+      ? firstNextMonthsDay
+      : state.activeDate;
+
+    dispatch({ type: 'SET_ACTIVE_DATE', data: activeDate });
   };
 
   const onSelectDate = (date: Date) => {
+    if (isSameDay(date, state.selectedDate)) return;
+
+    if (checkIsDateDisabled(date)) return;
+
     dispatch({ type: 'SELECT_DATE', data: date });
     onSelect?.(date);
   };
 
+  const onActivateDate = (date: Date) => {
+    const isDateInRange = checkIsDateInRange(date, minDate, maxDate);
+    if (!isDateInRange) return;
+
+    dispatch({ type: 'SET_ACTIVE_DATE', data: date });
+  };
+
   const onKeyDown = (evt: React.KeyboardEvent<HTMLTableElement>) => {
     const keyboardEventHandlers: Record<string, (() => void) | undefined> = {
-      ArrowUp: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: subDays(state.activeDate, 7),
-        }),
-      ArrowDown: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: addDays(state.activeDate, 7),
-        }),
-      ArrowLeft: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: subDays(state.activeDate, 1),
-        }),
-      ArrowRight: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: addDays(state.activeDate, 1),
-        }),
-      Home: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: startOfMonth(state.activeDate),
-        }),
-      End: () =>
-        dispatch({
-          type: 'SET_ACTIVE_DATE',
-          data: endOfMonth(state.activeDate),
-        }),
-      Enter: () => {
-        const currentActiveCell =
-          evt.currentTarget.querySelector<HTMLTableCellElement>(
-            `#${generateId(state.activeDate)}`
-          )!;
-        const isDisabled = currentActiveCell.hasAttribute(
-          'data-datacell-disabled'
+      ArrowUp: () => onActivateDate(subDays(state.activeDate, 7)),
+      ArrowDown: () => onActivateDate(addDays(state.activeDate, 7)),
+      ArrowLeft: () => onActivateDate(subDays(state.activeDate, 1)),
+      ArrowRight: () => onActivateDate(addDays(state.activeDate, 1)),
+      Home: () => {
+        const firstAvailableDay = state.visibleDates.find(
+          (date) =>
+            isSameMonth(date, state.activeDate) &&
+            checkIsDateInRange(date, minDate, maxDate)
         );
-        if (isDisabled) return;
 
-        onSelectDate(state.activeDate);
+        if (!firstAvailableDay) return;
+
+        onActivateDate(firstAvailableDay);
       },
+      End: () => {
+        const lastAvailableDay = state.visibleDates
+          .reverse()
+          .find(
+            (date) =>
+              isSameMonth(date, state.activeDate) &&
+              checkIsDateInRange(date, minDate, maxDate)
+          )!;
+
+        if (!lastAvailableDay) return;
+
+        onActivateDate(lastAvailableDay);
+      },
+      Enter: () => onSelectDate(state.activeDate),
     };
 
     const keyHandler = keyboardEventHandlers[evt.key];
@@ -279,9 +228,6 @@ export const Calendar = ({
     evt.preventDefault();
     keyHandler();
   };
-
-  const checkisDateDisabled = (date: Date) =>
-    !checkIsDateInRange(date, min, max) || (disabledDate?.(date) ?? false);
 
   // Keep the date from the props in sync with the date on state
   useEffect(() => {
@@ -304,6 +250,7 @@ export const Calendar = ({
             xmlns="http://www.w3.org/2000/svg"
             height="48"
             width="48"
+            aria-hidden="true"
           >
             <path d="M28.05 36 16 23.95 28.05 11.9 30.2 14.05 20.3 23.95 30.2 33.85Z" />
           </svg>
@@ -325,6 +272,7 @@ export const Calendar = ({
         >
           <svg
             data-icon
+            aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             height="48"
             width="48"
@@ -358,7 +306,7 @@ export const Calendar = ({
                   const id = generateId(date);
                   const isDateActive = isSameDay(date, state.activeDate);
                   const isDateSelected = isSameDay(date, state.selectedDate);
-                  const isDateDisabled = checkisDateDisabled(date);
+                  const isDateDisabled = checkIsDateDisabled(date);
                   const title = format(date, 'EEEE, MMMM dd, yyyy');
 
                   return (
@@ -378,7 +326,7 @@ export const Calendar = ({
                       data-datacell-active={getAttributeValue(isDateActive)}
                       data-datacell-selected={getAttributeValue(isDateSelected)}
                       data-datacell-disabled={getAttributeValue(isDateDisabled)}
-                      onClick={() => !isDateDisabled && onSelectDate(date)}
+                      onClick={() => onSelectDate(date)}
                     >
                       <span>
                         {format(date, 'dd')}
