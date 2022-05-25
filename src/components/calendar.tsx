@@ -256,7 +256,7 @@ export const Calendar = ({
           </svg>
         </button>
         <div
-          data-table-title
+          data-table-title=""
           role="log"
           aria-live="assertive"
           aria-relevant="text"
