@@ -96,6 +96,7 @@ type CalendarProps = {
   date?: Date;
   min?: Date;
   max?: Date;
+  name?: string;
   onSelect?(date: Date): void;
   tileContent?: (date: Date) => string;
   disabledDate?(date: Date): boolean;
@@ -104,6 +105,7 @@ export const Calendar = ({
   date,
   min,
   max,
+  name,
   tileContent,
   onSelect,
   disabledDate,
@@ -240,6 +242,7 @@ export const Calendar = ({
     <div data-table-container>
       <div data-table-header>
         <button
+          type="button"
           data-month-control="prev"
           onClick={handlePrevMonth}
           disabled={isPrevDisabled}
@@ -265,6 +268,7 @@ export const Calendar = ({
           {format(state.activeDate, 'MMMM yyyy')}
         </div>
         <button
+          type="button"
           data-month-control="next"
           onClick={handleNextMonth}
           disabled={isNextDisabled}
@@ -340,6 +344,13 @@ export const Calendar = ({
           })}
         </tbody>
       </table>
+      {name ? (
+        <input
+          type="hidden"
+          name={name}
+          value={state.selectedDate.toString()}
+        />
+      ) : null}
     </div>
   );
 };
