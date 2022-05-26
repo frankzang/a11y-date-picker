@@ -30,10 +30,10 @@ const WEEK_DAYS = [
   { name: 'saturday', abbr: 'sat' },
 ] as const;
 
-const generateDates = (date: Date) => {
+export const generateDates = (date: Date, length?: number) => {
   const start = startOfWeek(startOfMonth(date));
 
-  return [...Array(42).keys()].map((n) => addDays(start, n));
+  return [...Array(length ?? 42).keys()].map((n) => addDays(start, n));
 };
 
 const generateId = (date: Date) => `_${getDate(date)}_${getMonth(date)}_`;
@@ -57,12 +57,15 @@ const checkIsDateInRange = (date: Date, start?: Date, end?: Date) => {
   return true;
 };
 
+const safeIsSameDay = (date?: Date, dateToCompare?: Date) =>
+  !!(date && dateToCompare && isSameDay(date, dateToCompare));
+
 const getAttributeValue = (condition: boolean) =>
   condition ? true : undefined;
 
 type State = {
   activeDate: Date;
-  selectedDate: Date;
+  selectedDate?: Date;
   visibleDates: Date[];
 };
 
@@ -99,7 +102,7 @@ type CalendarProps = {
   name?: string;
   onSelect?(date: Date): void;
   tileContent?: (date: Date) => string;
-  disabledDate?(date: Date): boolean;
+  disabledTile?(date: Date): boolean;
 };
 export const Calendar = ({
   date,
@@ -108,13 +111,13 @@ export const Calendar = ({
   name,
   tileContent,
   onSelect,
-  disabledDate,
+  disabledTile,
 }: CalendarProps) => {
   const [state, dispatch] = useReducer(
     calendarReducer,
     {
       activeDate: date || new Date(),
-      selectedDate: date || new Date(),
+      selectedDate: date,
       visibleDates: [],
     },
     (state): State => ({
@@ -135,7 +138,7 @@ export const Calendar = ({
   const activeDescendant = generateId(state.activeDate);
 
   const checkIsDateDisabled = (date: Date) =>
-    !checkIsDateInRange(date, min, max) || (disabledDate?.(date) ?? false);
+    !checkIsDateInRange(date, min, max) || (disabledTile?.(date) ?? false);
 
   const handlePrevMonth = () => {
     const prevMonthDate = subMonths(state.activeDate, 1);
@@ -176,7 +179,7 @@ export const Calendar = ({
   };
 
   const onSelectDate = (date: Date) => {
-    if (isSameDay(date, state.selectedDate)) return;
+    if (safeIsSameDay(date, state.selectedDate)) return;
 
     if (checkIsDateDisabled(date)) return;
 
@@ -233,7 +236,7 @@ export const Calendar = ({
 
   // Keep the date from the props in sync with the date on state
   useEffect(() => {
-    if (!date || isSameDay(date, state.selectedDate)) return;
+    if (!date || safeIsSameDay(date, state.selectedDate)) return;
 
     dispatch({ type: 'SELECT_DATE', data: date });
   }, [date]);
@@ -246,7 +249,7 @@ export const Calendar = ({
           data-month-control="prev"
           onClick={handlePrevMonth}
           disabled={isPrevDisabled}
-          aria-label="Prev month"
+          aria-label="Previous month"
         >
           <svg
             data-icon
@@ -309,7 +312,10 @@ export const Calendar = ({
                 {days.map((date) => {
                   const id = generateId(date);
                   const isDateActive = isSameDay(date, state.activeDate);
-                  const isDateSelected = isSameDay(date, state.selectedDate);
+                  const isDateSelected = safeIsSameDay(
+                    date,
+                    state.selectedDate
+                  );
                   const isDateDisabled = checkIsDateDisabled(date);
                   const title = format(date, 'EEEE, MMMM dd, yyyy');
 
@@ -348,7 +354,7 @@ export const Calendar = ({
         <input
           type="hidden"
           name={name}
-          value={state.selectedDate.toString()}
+          value={state.selectedDate?.toString()}
         />
       ) : null}
     </div>
