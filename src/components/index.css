@@ -1,16 +1,16 @@
 :root {
     --hue: 250deg;
     --accent-color: hsl(var(--hue) 50% 50%);
-    --background-color: hsl(var(--hue) 50% 50% / 10%);
+    --secondary-color: hsl(var(--hue) 50% 50% / 10%);
     --body-text-color: #000000;
     --disabled-body-text-color: #00000090;
 }
 
-[data-table-container] * {
+:where([data-table-container] *) {
     box-sizing: border-box;
 }
 
-[data-table-container] {
+:where([data-table-container]) {
     display: grid;
     place-items: center;
     width: 100%;
@@ -19,7 +19,7 @@
     text-align: center;
 }
 
-[data-table-header] {
+:where([data-table-header]) {
     display: grid;
     grid-template-columns: 2rem 1fr 2rem;
     place-items: center;
@@ -28,7 +28,7 @@
     padding: 10px;
 }
 
-[data-month-control] {
+:where([data-month-control]) {
     border: none;
     background-color: transparent;
     display: grid;
@@ -36,31 +36,31 @@
     cursor: pointer;
 }
 
-[data-month-control]:disabled {
+:where([data-month-control]:disabled) {
     cursor: default;
 }
 
-[data-icon] {
+:where([data-icon]) {
     transform: scale(.8);
     fill: var(--body-text-color);
 }
 
-[data-month-control]:disabled [data-icon] {
+:where([data-month-control]:disabled [data-icon]) {
     fill: var(--disabled-body-text-color);
 }
 
-[data-table-title] {
+:where([data-table-title]) {
     text-transform: uppercase;
     font-size: 1rem;
     font-weight: bold;
     color: var(--body-text-color);
 }
 
-[data-table] {
+:where([data-table]) {
     width: 100%;
 }
 
-[data-sr-only] {
+:where([data-sr-only]) {
     clip: rect(0 0 0 0);
     clip-path: inset(50%);
     height: 1px;
@@ -70,7 +70,7 @@
     width: 1px;
 }
 
-[data-table-headercell] {
+:where([data-table-headercell]) {
     text-transform: capitalize;
     font-size: 1rem;
     color: var(--body-text-color);
@@ -78,7 +78,7 @@
     min-width: 50px;
 }
 
-[data-table-datacell] {
+:where([data-table-datacell]) {
     padding: 10px;
     border-radius: 5px;
     cursor: pointer;
@@ -86,28 +86,30 @@
     color: var(--body-text-color);
 }
 
-[data-datacell-today]:not([data-datacell-selected]) {
+:where([data-datacell-today]:not([data-datacell-selected])) {
     text-decoration: underline;
 }
 
-[data-table-datacell]:hover:not([data-datacell-selected]) {
-    background-color: var(--background-color);
+@media (hover: hover) {
+    :where([data-table-datacell]:hover:not([data-datacell-selected])) {
+        background-color: var(--secondary-color);
+    }
 }
 
-[data-datacell-active] {
-    background-color: var(--background-color)
+:where([data-datacell-active]) {
+    background-color: var(--secondary-color)
 }
 
-[data-datacell-selected] {
+:where([data-datacell-selected]) {
     background-color: var(--accent-color);
     color: #fff;
 }
 
-[data-datacell-disabled] {
+:where([data-datacell-disabled]) {
     color: var(--disabled-body-text-color);
     cursor: default;
 }
 
-[data-outsidemonth]:not([data-datacell-selected]) {
+:where([data-outsidemonth]:not([data-datacell-selected])) {
     color: var(--disabled-body-text-color);
 }
