@@ -60,6 +60,11 @@
     width: 100%;
 }
 
+:where([data-table-row]) {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
 :where([data-sr-only]) {
     clip: rect(0 0 0 0);
     clip-path: inset(50%);

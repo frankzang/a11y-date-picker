@@ -297,7 +297,7 @@ export const Calendar = ({
       >
         <caption data-sr-only>Calendar</caption>
         <thead>
-          <tr role="row">
+          <tr role="row" data-table-row="">
             {WEEK_DAYS.map(({ name, abbr }) => (
               <th key={abbr} scope="col" abbr={name} data-table-headercell="">
                 {abbr}
@@ -308,7 +308,7 @@ export const Calendar = ({
         <tbody>
           {weeks.map((days, rowIndex) => {
             return (
-              <tr key={rowIndex.toString()} role="row">
+              <tr key={rowIndex.toString()} role="row" data-table-row="">
                 {days.map((date) => {
                   const id = generateId(date);
                   const isDateActive = isSameDay(date, state.activeDate);
