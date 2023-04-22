@@ -96,7 +96,7 @@
 }
 
 @media (hover: hover) {
-    :where([data-table-datacell]:hover:not([data-datacell-selected])) {
+    :where([data-table-datacell]:hover:not([data-datacell-selected]):not([data-datacell-disabled])) {
         background-color: var(--secondary-color);
     }
 }
@@ -112,7 +112,7 @@
 
 :where([data-datacell-disabled]) {
     color: var(--disabled-body-text-color);
-    cursor: default;
+    cursor: not-allowed;
 }
 
 :where([data-outsidemonth]:not([data-datacell-selected])) {
