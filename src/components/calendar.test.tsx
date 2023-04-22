@@ -23,6 +23,43 @@ vi.useFakeTimers();
 vi.setSystemTime(defaultDate);
 
 describe('Calendar', () => {
+  describe('aria', () => {
+    test('it has aria-selected on the selected date', () => {
+      const date = addYears(defaultDate, 1);
+      render(<Calendar date={date} />);
+
+      const activeCell = screen.getByRole('gridcell', {
+        name: new RegExp(format(date, 'EEEE, MMMM dd, yyyy'), 'i'),
+      });
+
+      fireEvent.click(activeCell);
+
+      expect(activeCell).toHaveAttribute('aria-selected', 'true');
+    });
+
+    test('it has aria-disabled on a disabled date', () => {
+      const date = addYears(defaultDate, 1);
+      const tomorrow = addDays(date, 1);
+
+      render(
+        <Calendar
+          date={date}
+          disabledTile={(cellData) => isSameDay(cellData, tomorrow)}
+        />
+      );
+
+      const activeCell = screen.getByRole('gridcell', {
+        name: new RegExp(format(date, 'EEEE, MMMM dd, yyyy'), 'i'),
+      });
+      const disabledCell = screen.getByRole('gridcell', {
+        name: new RegExp(format(tomorrow, 'EEEE, MMMM dd, yyyy'), 'i'),
+      });
+
+      expect(activeCell).not.toHaveAttribute('aria-disabled');
+      expect(disabledCell).toHaveAttribute('aria-disabled');
+    });
+  });
+
   describe('rendering', () => {
     test('it has data-datacell-selected on the selected date', () => {
       const date = addYears(defaultDate, 1);

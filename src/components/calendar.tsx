@@ -60,8 +60,8 @@ const checkIsDateInRange = (date: Date, start?: Date, end?: Date) => {
 const safeIsSameDay = (date?: Date, dateToCompare?: Date) =>
   !!(date && dateToCompare && isSameDay(date, dateToCompare));
 
-const getAttributeValue = (condition: boolean) =>
-  condition ? true : undefined;
+const getAttributeValue = (condition: boolean, defaultValue?: boolean) =>
+  condition ? true : defaultValue;
 
 type State = {
   activeDate: Date;
@@ -326,7 +326,7 @@ export const Calendar = ({
                       role="gridcell"
                       title={title}
                       aria-label={title}
-                      aria-selected={getAttributeValue(isDateSelected)}
+                      aria-selected={getAttributeValue(isDateSelected, false)}
                       aria-disabled={getAttributeValue(isDateDisabled)}
                       data-table-datacell=""
                       data-datacell-today={getAttributeValue(isToday(date))}
