@@ -194,7 +194,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'ArrowUp' });
+        fireEvent.keyDown(table, { code: 'ArrowUp' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(upperDate),
@@ -210,7 +210,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'ArrowLeft' });
+        fireEvent.keyDown(table, { code: 'ArrowLeft' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(leftDate),
@@ -226,7 +226,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'ArrowRight' });
+        fireEvent.keyDown(table, { code: 'ArrowRight' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(rigthDate),
@@ -242,7 +242,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'ArrowDown' });
+        fireEvent.keyDown(table, { code: 'ArrowDown' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(bottomDate),
@@ -258,7 +258,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'Home' });
+        fireEvent.keyDown(table, { code: 'Home' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(firstMonthDay),
@@ -274,7 +274,7 @@ describe('Calendar', () => {
 
         const table = screen.getByRole('grid');
 
-        fireEvent.keyDown(table, { key: 'End' });
+        fireEvent.keyDown(table, { code: 'End' });
 
         const cell = screen.getByRole('gridcell', {
           name: dateFormatter(lastMonthDay),
@@ -295,7 +295,7 @@ describe('Calendar', () => {
 
           expect(cell).not.toHaveAttribute('data-datacell-selected');
 
-          fireEvent.keyDown(table, { key: 'Enter' });
+          fireEvent.keyDown(table, { code: 'Enter' });
 
           expect(cell).toHaveAttribute('data-datacell-selected');
         });
@@ -311,7 +311,7 @@ describe('Calendar', () => {
 
           expect(cell).not.toHaveAttribute('data-datacell-selected');
 
-          fireEvent.keyDown(table, { key: 'Enter' });
+          fireEvent.keyDown(table, { code: 'Enter' });
 
           expect(mockOnSelect).toHaveBeenCalledWith(defaultDate);
         });
@@ -326,7 +326,7 @@ describe('Calendar', () => {
             name: dateFormatter(defaultDate),
           });
 
-          fireEvent.keyDown(table, { key: 'Enter' });
+          fireEvent.keyDown(table, { code: 'Enter' });
 
           expect(cell).not.toHaveAttribute('data-datacell-selected');
         });
@@ -339,7 +339,7 @@ describe('Calendar', () => {
 
           const table = screen.getByRole('grid');
 
-          fireEvent.keyDown(table, { key: 'Enter' });
+          fireEvent.keyDown(table, { code: 'Enter' });
 
           expect(mockOnSelect).not.toHaveBeenCalledWith(defaultDate);
         });

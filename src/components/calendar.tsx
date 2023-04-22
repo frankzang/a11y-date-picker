@@ -225,9 +225,10 @@ export const Calendar = ({
         onActivateDate(lastAvailableDay);
       },
       Enter: () => onSelectDate(state.activeDate),
+      Space: () => onSelectDate(state.activeDate),
     };
 
-    const keyHandler = keyboardEventHandlers[evt.key];
+    const keyHandler = keyboardEventHandlers[evt.code];
     if (!keyHandler) return;
 
     evt.preventDefault();
